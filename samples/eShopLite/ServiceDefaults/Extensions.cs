@@ -5,6 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -56,6 +57,12 @@ public static class Extensions
                 tracing.AddAspNetCoreInstrumentation()
                        .AddGrpcClientInstrumentation()
                        .AddHttpClientInstrumentation();
+            })
+            .ConfigureResource(rb => {
+                rb.AddAttributes(new Dictionary<string, object>
+                {
+                    ["process.id"] = Environment.ProcessId,
+                });
             });
 
         builder.AddOpenTelemetryExporters();

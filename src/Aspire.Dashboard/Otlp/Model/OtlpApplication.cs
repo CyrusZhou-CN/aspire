@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Common.V1;
@@ -15,9 +16,11 @@ public class OtlpApplication
 {
     public const string SERVICE_NAME = "service.name";
     public const string SERVICE_INSTANCE_ID = "service.instance.id";
+    public const string PROCESS_ID = "process.id";
 
     public string ApplicationName { get; }
     public string InstanceId { get; }
+    public long? ProcessId { get; }
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
     private readonly Dictionary<string, OtlpMeter> _meters = new();
@@ -40,6 +43,17 @@ public class OtlpApplication
                 case SERVICE_INSTANCE_ID:
                     InstanceId = attribute.Value.GetString();
                     break;
+                case PROCESS_ID:
+                    if (attribute.Value.ValueCase == AnyValue.ValueOneofCase.IntValue)
+                    {
+                        ProcessId = attribute.Value.IntValue;
+                        break;
+                    }
+                    else
+                    {
+                        goto default;
+                    }
+
                 default:
                     properties.Add(new KeyValuePair<string, string>(attribute.Key, attribute.Value.GetString()));
                     break;
@@ -67,6 +81,10 @@ public class OtlpApplication
         var props = new Dictionary<string, string>();
         props.Add(SERVICE_NAME, ApplicationName);
         props.Add(SERVICE_INSTANCE_ID, InstanceId);
+        if (ProcessId is not null)
+        {
+            props.Add(PROCESS_ID, ProcessId.Value.ToString(CultureInfo.InvariantCulture));
+        }
 
         foreach (var kv in Properties)
         {
